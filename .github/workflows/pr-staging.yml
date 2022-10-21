@@ -1,0 +1,29 @@
+name: SFDX-CI (Org-based dev)
+on:
+  pull_request:
+    branches: [staging]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: "Checkout source code"
+        uses: actions/checkout@v3
+
+      # Run PMD Scan
+      - name: "Run PMD Scan"
+        uses: pmd/pmd-github-action@v1
+        id: pmd
+        with:
+          sourcePath: "force-app"
+          rulesets: "ruleset.xml"
+
+      - name: "Install SFDX CLI and Authenticate to a dev org"
+        uses: sfdx-actions/setup-sfdx@v1
+        with:
+          sfdx-auth-url: ${{ secrets.AUTH_SECRET }}
+      - name: "Convert source to deployable artifacts"
+        run: "sfdx force:source:convert -r force-app --outputdir=convert"
+      - name: "Run LocalTests"
+        run: "sfdx force:mdapi:deploy --deploydir=convert --testlevel=RunLocalTests --checkonly -w30"
